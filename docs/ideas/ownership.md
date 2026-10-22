@@ -37,6 +37,9 @@ This creates a new repository with Alice's authority declaration:
 {"time":1792685176, "email": "alice@example.org", "key":"..."}
 ```
 
+`bip` will also create a unique repository ID that is some kind
+of hash that can be used to uniquely identify this act of creation.
+
 Now somewhere, Bob clones this `bip` repository and creates
 a branch `add-bob-to-owners`, and in that branch creates his
 own authority declaration:
@@ -76,10 +79,10 @@ it locally.
 3. `bip` determines the fingerprint of that public key.
 4. `bip` looks for an authority declaration and a corresponding, verified
 `.sig` file previously committed on branch `main`.
-5. `bip` verifies that the public key in the authority declaration is a match for
+5. `bip` verifies that the public key in the authority declaration matches
 the public key from (2) and verifies that this key on the `.sig` file.
 6. If all of this works, Alice is permitted to sign the merge commit with her
-private key.
+private key, once `bip` uses her public key to confirm the signing.
 7. Bob's authority declaration is now committed to `main`.
 
 An implication of this is that merges to `main` must be done only
@@ -91,12 +94,15 @@ Should some random person wish to fork the repository, a special
 `fork` command will recreate the initial authority file, thus 
 breaking the connection of the owners of the forked repository
 and establishing a new owner. This is useful as it prevents changes
-in a fork from being attributed to people who are unaware.
+in a fork from being attributed to people who are unaware. The
+repository ID will be regenerated upon a `fork` to indicate that
+this is a new beginning.
 
 Also, there will be a command that removes all authority files. This
 is the `archive` command. As there are no authority files on the
 `main` branch following this command, no more commits can be made 
-(although the repository can be forked and commits can start anew).
+(although the repository can be forked and commits can start anew
+with a new repository ID).
 
 There may be sneaky ways to get around all of these measures. We
 won't guarantee the `bip` will be airtight initially. We also
