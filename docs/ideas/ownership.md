@@ -68,12 +68,19 @@ Alice can then sign the merge into `main`:
 > Enter private key password to sign merge commit:...
 ```
 
-Alice's private key is now available to verify that the file 
-`.authority/$alice-ssh-key-fingerprint.sig` is her signature for
-her authority declaration `.authority/$alice-ssh-key-fingerprint` 
-and that the public key in that declaration matches hers. Since
-there is a match, the merge completes. Otherwise, the merge is
-declined.
+When this command is run, the following happens:
+
+1. `bip` asks Alice to unlock her private ssh key (or an agent has it already).
+2. `bip` either extracts the corresponding public key from the private key or locates
+it locally.
+3. `bip` determines the fingerprint of that public key.
+4. `bip` looks for an authority declaration and a corresponding, verified
+`.sig` file previously committed on branch `main`.
+5. `bip` verifies that the public key in the authority declaration is a match for
+the public key from (2) and verifies that this key on the `.sig` file.
+6. If all of this works, Alice is permitted to sign the merge commit with her
+private key.
+7. Bob's authority declaration is now committed to `main`.
 
 An implication of this is that merges to `main` must be done only
 where an owner's ssh private key is available. This means merging
