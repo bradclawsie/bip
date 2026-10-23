@@ -35,17 +35,18 @@ At time of repository creation, the creator must designate themselves as an owne
 2. Set mandatory ssh signing on commits and tags.
 3. Create an authority declaration for the creator with the provided email,
 which the creator must sign with their ssh private key.
-4. Make a commit to `main` with this authority declaration, establishing
-the creator of the repository as its initial owner.
-5. Make a commit of a sentinel directory `.bip` to `main` to indicate that
-this is a `bip`-enabled repository.
-6. In the `.bip` directory, there will be a `repository-id.pkl` file that
-contains a unique `id` value that identifies the repository.
+4. Add a sentinel directory `.bip` to indicate that this is 
+a `bip`-enabled repository.
+5. Add the initial owner's authority declaration to the directory 
+`/.bip/authority`.
+6. Add a file `/.bip/repository-id.pkl` containing a unique id for
+this repository.
+7. Commit these files to `main` as signed by the creator.
 
 ## The authority declaration
 
 An authority declaration is used by `bip` to indicate a particular user
-can make a merge to `main`.
+can make a merge to `main` (and other owner operations).
 
 The authority declaration is a file in a reserved directory `/.bip/authority`.
 The file name will be derived from the user's ssh key, using a process 
@@ -145,7 +146,7 @@ The command
 Will replace the repository id located at `/.bip/repository-id.pkl` with
 a new value and will replace all existing authority declarations with a
 new single authority declaration for `bob@example.org`. The changes will
-be written to `main` as a commit.
+be written to `main` as a commit, signed by the new owner.
 
 ## Archiving
 
