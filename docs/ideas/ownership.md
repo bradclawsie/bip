@@ -161,3 +161,19 @@ The command
 
 Removes all authority declarations and commits this change to `main`. Since
 there are no authority declarations to make merges to `main`, the repository
+
+## Enforcing our rules
+
+A `git` repository and the `git` command is always available to users. If
+someone should intentionally or accidentally skirt our ownership rules,
+that should be something that can be detected.
+
+A command
+
+```bash
+> bip review
+```
+
+Shall make a best-effort to use `git` log information to assert that
+participants are honoring `bip` conventions.
+
