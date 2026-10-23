@@ -97,7 +97,14 @@ The signature of the authority declaration file will be confirmed with
 the user's ssh public key, and the repository-id in the authority declaration
 must match what the `main` branch has in the file `/.bip/repository-id.pkl`.
 
-An implication of this is that certain operations (such as a merge to `main`)
+A log of commits to `main` will be stored at `/.bip/main.log` that
+will record the merge commit hash, the parent commit hash, and the
+owner who made the commit. This commit itself is signed by the same
+owner. This log allows verification of `main` commits. Of course,
+a malicious owner could tamper with this log, but we cannot defend
+against a malicious owner.
+
+An implication of this approach is that owner operations
 can only be performed where an owner's ssh keys are available. This means 
 owner operations must happen where the owner is logged in. This is a design
 decision of `bip` intended to keep responsible owners in the loop and accountable.
@@ -174,6 +181,7 @@ A command
 > bip review
 ```
 
-Shall make a best-effort to use `git` log information to assert that
+Shall make a best-effort to use `git` log information as well as
+the `main` branch commit log at `/.bip/main.log` to assert that
 participants are honoring `bip` conventions.
 
