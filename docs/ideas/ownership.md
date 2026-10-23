@@ -133,7 +133,8 @@ therefore also a repository owner now.
 
 ## Forking
 
-Forking in `bip` is an intention to claim control of a repository.
+Forking in `bip` establishes a new identification and ownership
+for a copy of a repository.
 
 The command
 
