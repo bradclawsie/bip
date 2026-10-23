@@ -98,11 +98,11 @@ the user's ssh public key, and the repository-id in the authority declaration
 must match what the `main` branch has in the file `/.bip/repository-id.pkl`.
 
 A log of commits to `main` will be stored at `/.bip/main.log` that
-will record the merge commit hash, the parent commit hash, and the
-owner who made the commit. This commit itself is signed by the same
-owner. This log allows verification of `main` commits. Of course,
-a malicious owner could tamper with this log, but we cannot defend
-against a malicious owner.
+will record the previous merge commit hash and the parent commit hash.
+So `/.bip/main.log` records authorized transitions of `main`, while `git`
+records the resulting commits and cryptographically links their contents and
+ancestry. Note that owners are trusted implicitly so we cannot 
+prevent or guard against an owner tampering with `/.bip/main.log`.
 
 An implication of this approach is that owner operations
 can only be performed where an owner's ssh keys are available. This means 
@@ -168,6 +168,7 @@ The command
 
 Removes all authority declarations and commits this change to `main`. Since
 there are no authority declarations to make merges to `main`, the repository
+is considered archived.
 
 ## Enforcing our rules
 
