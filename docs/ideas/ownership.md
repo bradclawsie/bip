@@ -36,21 +36,21 @@ as an owner:
 2. Configure for ssh signing on commits and tags.
 3. Add a sentinel directory `.bip` to indicate that this is 
 a `bip`-enabled repository.
-4. Add the initial owner's public key in `/.bip/allowed_signers`
+4. Add the initial owner's public key in `.bip/allowed_signers`
 in the format accepted for this file.
-5. Configure the repository to use `/.bip/allowed_signers` for
+5. Configure the repository to use `.bip/allowed_signers` for
 asserting authority.
-6. Add a file `/.bip/repository-id.pkl` containing a unique id for
+6. Add a file `.bip/repository-id.pkl` containing a unique id for
 this repository.
 7. Commit these files to `main` as signed by the creator.
 
 The signature in (7) establishes the first link in the chain
-of trust, and `/.bip/allowed_signers` is considered trusted
+of trust, and `.bip/allowed_signers` is considered trusted
 initially by default.
 
 ## The authority declaration
 
-Authority is granted from the file `/.bip/allowed_signers` which
+Authority is granted from the file `.bip/allowed_signers` which
 is already an established format utilized by `git`.
 
 New owners can be added to the file through merge requests.
@@ -59,7 +59,7 @@ New owners can be added to the file through merge requests.
 
 Repository ownership is a pattern supported by `bip`. Certain
 operations will be limited to contributors listed in the
-`/.bip/allowed_signers` file. Chief among these operations is
+`.bip/allowed_signers` file. Chief among these operations is
 the ability to merge a branch to `main`. Let's explore that.
 
 When this is run by an owner:
@@ -70,11 +70,9 @@ When this is run by an owner:
 > bip merge $some-branch
 ```
 
-A merge commit will be made and signed using the owner's ssh key.
-`bip` will then assert that the corresponding public key is in
-`/.bip/allowed_signers` for the first parent of the merge commit
-(`main`, right before the merge commit). If it isn't, the merge
-commit is undone.
+`bip` will first verify if the ssh public key is in 
+`.bip/allowed_signers` on `main` as a precondition for
+allowing the merge commit to complete. 
 
 An implication of this signing process is that certain operations
 like merging to `main` must be done in a local environment where
@@ -93,7 +91,7 @@ spell it out.
 Bob will make a branch called `make-bob-an-owner`.
 
 In that branch, he will add the appropriate line in
-`/.bip/allowed_signers`. He makes a normal signed `git` commit.
+`.bip/allowed_signers`. He makes a normal signed `git` commit.
 
 Alice fetches his branch and runs
 
@@ -102,7 +100,7 @@ Alice fetches his branch and runs
 ```
 
 which makes a signed `git` commit, but then also checks that Alice's
-ssh public key is available in `/.bip/allowed_signers`. It is, so the
+ssh public key is available in `.bip/allowed_signers`. It is, so the
 commit is retained.
 
 ## Forking
@@ -113,12 +111,12 @@ for a copy of a repository.
 The command
 
 ```bash
-> bip fork -- bob@example.org
+> bip fork
 ```
 
-Will replace the repository id located at `/.bip/repository-id.pkl` with
-a new value and will replace `/.bip/allowed_signers` with a new file
-with a single ssh public key - that belongin to the forking owner.
+Will replace the repository id located at `.bip/repository-id.pkl` with
+a new value and will replace `.bip/allowed_signers` with a new file
+with a single ssh public key - that belonging to the forking owner.
 
 ## Archiving
 
@@ -131,7 +129,7 @@ The command
 > bip archive
 ```
 
-Removes all entries in `/.bip/allowed_signers` and commits this 
+Removes all entries in `.bip/allowed_signers` and commits this 
 change to `main`, which will prevent `bip` from allowing further
 merges to `main`.
 
@@ -152,8 +150,9 @@ Will scan commits to `main` in a similar fashion as something
 like
 
 ```bash
-> git log --main --show-signature --first-parent
+> git log main --show-signature --first-parent
 ```
 
-and assert that each committer was in `/.bip/allowed_signers`
-in `main` when each respective merge commit was performed.
+and assert that each merge commit was signed by a key listed in 
+`.bip/allowed_signers` in `main` when each respective merge commit 
+was performed.
