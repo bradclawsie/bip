@@ -23,121 +23,85 @@ commits.
 
 ## Ownership workflows
 
-At time of repository creation, the creator must designate themselves as an owner:
+After repository creation, the creator must designate themselves 
+as an owner:
 
 ```bash
-> bip git init -- alice@example.org
+> bip init
 ```
 
 `bip` will do the following here:
 
-1. Execute the `git init ...` to actually create the repository.
-2. Set mandatory ssh signing on commits and tags.
-3. Create an authority declaration for the creator with the provided email,
-which the creator must sign with their ssh private key.
-4. Add a sentinel directory `.bip` to indicate that this is 
+1. Verify that the current working directory is a `git` repository.
+2. Configure for ssh signing on commits and tags.
+3. Add a sentinel directory `.bip` to indicate that this is 
 a `bip`-enabled repository.
-5. Add the initial owner's authority declaration to the directory 
-`/.bip/authority`.
-6. Add a file `/.bip/repository-id.pkl` containing a unique id for
+4. Add the initial owner's public key in `.bip/allowed_signers`
+in the format accepted for this file.
+5. Configure the repository to use `.bip/allowed_signers` for
+asserting authority.
+6. Add a file `.bip/repository-id.pkl` containing a unique id for
 this repository.
 7. Commit these files to `main` as signed by the creator.
 
+The signature in (7) establishes the first link in the chain
+of trust, and `.bip/allowed_signers` is considered trusted
+initially by default.
+
 ## The authority declaration
 
-An authority declaration is used by `bip` to indicate a particular user
-can make a merge to `main` (and other owner operations).
+Authority is granted from the file `.bip/allowed_signers` which
+is already an established format utilized by `git`.
 
-The authority declaration is a file in a reserved directory `/.bip/authority`.
-The file name will be derived from the user's ssh key, using a process 
-like this command line example:
-
-```bash
-awk '{print $2}' ~/.ssh/id_ed25519.pub | base64 -d | sha256sum | cut -d' ' -f1
-```
-
-This produces a string that is a safe file name on any operating system, and is
-tied directly to the ssh key. The user will be able to discover their authority
-declaration file name with this shortcut:
-
-```bash
-> bip authority-declaration-file
-```
-
-The file itself will be written as a `pkl` file:
-
-```pkl
-ctime = 1792773366
-email = "alice@example.org"
-key = "ssh-ed25519..."
-repository-id = "$current-repository-id"
-```
-
-The user will be required to sign this file with their ssh credentials in addition
-to signing the commit that adds it.
-
-`bip` will provide a special command
-
-```bash
-> bip create-authority-declaration
-```
-
-that will guide the creation of this file for a user. During the repository
-creation process described above, this command will be called on behalf
-of the repository creator.
+New owners can be added to the file through merge requests.
 
 ## Using the authority declaration
 
-When `bip` is going to perform an operation that can only be completed
-by a repository owner (such as merging to `main`), the user's ssh public
-key will be obtained, and the authority declaration filename determined
-must be present in the `main` branch.
+Repository ownership is a pattern supported by `bip`. Certain
+operations will be limited to contributors listed in the
+`.bip/allowed_signers` file. Chief among these operations is
+the ability to merge a branch to `main`. Let's explore that.
 
-The signature of the authority declaration file will be confirmed with
-the user's ssh public key, and the repository-id in the authority declaration
-must match what the `main` branch has in the file `/.bip/repository-id.pkl`.
+When this is run by an owner:
 
-A log of commits to `main` will be stored at `/.bip/main.log` that
-will record the previous merge commit hash and the parent commit hash.
-So `/.bip/main.log` records authorized transitions of `main`, while `git`
-records the resulting commits and cryptographically links their contents and
-ancestry. Note that owners are trusted implicitly so we cannot 
-prevent or guard against an owner tampering with `/.bip/main.log`.
+```bash
+> git branch
+* main
+> bip merge $some-branch
+```
 
-An implication of this approach is that owner operations
-can only be performed where an owner's ssh keys are available. This means 
-owner operations must happen where the owner is logged in. This is a design
-decision of `bip` intended to keep responsible owners in the loop and accountable.
+`bip` will first verify if the ssh public key is in 
+`.bip/allowed_signers` on `main` as a precondition for
+allowing the merge commit to complete. 
+
+An implication of this signing process is that certain operations
+like merging to `main` must be done in a local environment where
+the owner's ssh key is decrypted.
 
 ## Add a new owner
 
-Let's say that in addition to Alice, there is a desire to add another
-user, Bob, as an owner. As the current sole owner, Alice must complete
-this operation.
+Let's say that in addition to an initial owner Alice, there is a 
+desire to add another user, Bob, as an owner. 
+
+As the current sole owner, Alice must complete this operation.
 
 This is just another merge to `main` as described above, but let's
 spell it out.
 
 Bob will make a branch called `make-bob-an-owner`.
 
-In that repository, Bob will run: 
+In that branch, he will add the appropriate line in
+`.bip/allowed_signers`. He makes a normal signed `git` commit.
+
+Alice fetches his branch and runs
 
 ```bash
-> bip create-authority-declaration
+> bip merge make-bob-an-owner
 ```
 
-which creates his authority declaration file along which he will sign
-with his ssh credentials.
-
-The commit of this file is also signed like all commits.
-
-Alice can then fetch this branch and also obtain Bob's ssh public
-key to verify the file. Alice must then decide to merge this to
-`main` using her own judgement, following the process for merging
-to `main` described above.
-
-Now Bob has his authority file on the `main` branch, and he is 
-therefore also a repository owner now.
+which makes a signed `git` commit, but then also checks that Alice's
+ssh public key is available in `.bip/allowed_signers`. It is, so the
+commit is retained.
 
 ## Forking
 
@@ -147,13 +111,12 @@ for a copy of a repository.
 The command
 
 ```bash
-> bip fork -- bob@example.org
+> bip fork
 ```
 
-Will replace the repository id located at `/.bip/repository-id.pkl` with
-a new value and will replace all existing authority declarations with a
-new single authority declaration for `bob@example.org`. The changes will
-be written to `main` as a commit, signed by the new owner.
+Will replace the repository id located at `.bip/repository-id.pkl` with
+a new value and will replace `.bip/allowed_signers` with a new file
+with a single ssh public key - that belonging to the forking owner.
 
 ## Archiving
 
@@ -166,15 +129,16 @@ The command
 > bip archive
 ```
 
-Removes all authority declarations and commits this change to `main`. Since
-there are no authority declarations to make merges to `main`, the repository
-is considered archived.
+Removes all entries in `.bip/allowed_signers` and commits this 
+change to `main`, which will prevent `bip` from allowing further
+merges to `main`.
 
 ## Enforcing our rules
 
-A `git` repository and the `git` command is always available to users. If
-someone should intentionally or accidentally skirt our ownership rules,
-that should be something that can be detected.
+`bip` is about establishing patterns and formats for a better
+`git` experience. But there is no way to make `bip` mandatory.
+But we can check to make sure the recommended patterns are
+being followed.
 
 A command
 
@@ -182,7 +146,13 @@ A command
 > bip review
 ```
 
-Shall make a best-effort to use `git` log information as well as
-the `main` branch commit log at `/.bip/main.log` to assert that
-participants are honoring `bip` conventions.
+Will scan commits to `main` in a similar fashion as something
+like
 
+```bash
+> git log main --show-signature --first-parent
+```
+
+and assert that each merge commit was signed by a key listed in 
+`.bip/allowed_signers` in `main` when each respective merge commit 
+was performed.
