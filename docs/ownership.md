@@ -11,6 +11,12 @@ behavioral specification.
 Accepted requirements will be maintained through
 OpenSpec.
 
+The first implemented capability establishes and verifies the signed initial
+ownership declaration. See [the bootstrap format](bootstrap-format.md) for its
+exact rules. Owner transitions, `bip merge`, and full historical `bip review`
+remain future capabilities; bootstrap verification does not certify those
+operations or current ownership.
+
 ## Definition
 
 _Ownership_ is a `bip` concept that relates to
@@ -41,22 +47,40 @@ must therefore take in to consideration the contents
 of `.bip/allowed_signers` at the time of a particular
 authorized event.
 
-Since branch `main` is special with respect to ownership
-assertions, `bip` will only allow merging other branches
-to it, and individual edited commits will be flagged
-by `bip review`.
+The intended contributor workflow updates `main` by merging other branches.
+This is a voluntary governance convention, not a restriction on Git itself.
+bip protocol operations can create direct commits when required: the signed
+initialization commit is the first explicit exception. Future `bip review`
+must distinguish permitted protocol operations from unauthorized direct edits.
 
 ## Building the chain of trust
 
-When a `git` repository is initialized with `bip init`,
-the user performing the initialization will be considered
-the first owner and have their `ssh` public key
-entered into the new `.bip/allowed_signers` file.
+`bip init --signing-key <path>` requires an existing, checked-out local `main`
+with at least one commit and a clean index and working tree. The repository
+must have complete history and a working-tree checkout; `.bip` must not already
+exist. Users create or rename `main` and make the first Git commit themselves.
 
-A repository ID file will be created at the same time
-with the current date and parent commit hash listed.
-This will allow others to see at what point the repository
-was configured for `bip`.
+The initializer explicitly selects an SSH key. bip records its public key as
+the first owner in `.bip/allowed_signers`, together with versioned initialization
+date and parent information in `.bip/identity.toml`. It creates and verifies a
+signed, single-parent commit directly on `main`, with subject `bip! init v1`.
+The full hash of that signed commit is the permanent repository identity.
+It cannot be embedded inside that same commit; the metadata instead records
+the preceding commit's hash. Later owner changes preserve repository identity;
+rewriting the initialization commit changes it.
+
+The initialization event is discovered only on the first-parent history of
+local `main`. Multiple initialization markers are ambiguous and rejected.
+`bip verify` validates this event against its own committed initial-owner key,
+not current files or later owner declarations. This self-declaration establishes
+the bootstrap; later owner additions will need authorization from previously
+established owners.
+
+`bip verify --expected-id <full-commit-hash>` additionally checks an identity
+obtained through a channel the user trusts. Without that argument, verification
+reports a valid bootstrap without checking an external identity. In either
+case it explicitly states that subsequent ownership changes and governance
+history were not checked. Choosing the canonical project remains social.
 
 ## Proposed invariants
 
@@ -65,7 +89,8 @@ invariant:
 
 - Branch `main` is special and contains the authoritative
 ownership record.
-- Branch `main` can only be updated with `bip merge`.
+- Ordinary contributor updates to `main` use `bip merge`; defined bip protocol
+operations, including initialization, can create direct commits.
 - Authorized operations are validated against the `.bip/allowed_signers`
 as present on branch `main` at the time of the operation.
 - `bip review` must assert the consistency of authorized operations

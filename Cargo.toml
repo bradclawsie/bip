@@ -8,3 +8,8 @@ name = "bip"
 path = "src/bip.rs"
 
 [dependencies]
+anyhow = "1"
+serde = { version = "1", features = ["derive"] }
+tempfile = "3"
+time = { version = "0.3", features = ["formatting", "parsing"] }
+toml = "0.8"
