@@ -13,7 +13,14 @@ Start with an existing, non-bare Git repository with complete history. Create or
 rename your intended branch to local `main`, check it out, and create at least
 one Git commit. That commit anchors bip initialization. The index and working
 tree must be clean, including non-ignored untracked files, and `.bip` must not
-already exist.
+already exist. Git must not ignore `.bip/identity.toml` or
+`.bip/allowed_signers`; update the relevant ignore rule or add an exception
+before initializing. From the repository root, run the following to find
+matching rules, including those from global or repository-local excludes:
+
+```sh
+git check-ignore -v --no-index -- .bip/identity.toml .bip/allowed_signers
+```
 
 Explicitly select your SSH signing key:
 

@@ -49,7 +49,9 @@ use 64. Hexadecimal comparison is case insensitive.
 bip-owner namespaces="git" <key-type> <base64-public-key> [comment]
 ```
 
-Exactly one effective entry is permitted. Blank lines and lines whose first
+In the initialization commit, exactly one effective entry is permitted. This
+bootstrap restriction does not prevent later owner additions or removals; those
+transitions are not yet verified by bip. Blank lines and lines whose first
 non-whitespace character is `#` are ignored. Fields are separated by whitespace.
 The principal must be exactly `bip-owner` and the only option must be exactly
 `namespaces="git"`. Certificates, wildcard principals, additional options, and

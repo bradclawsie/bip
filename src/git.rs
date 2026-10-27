@@ -5,6 +5,8 @@ use std::process::{Command, Output, Stdio};
 
 use anyhow::{Context, Result, bail, ensure};
 
+use crate::metadata::{IDENTITY_PATH, SIGNERS_PATH};
+
 pub struct Repository {
     pub root: PathBuf,
     pub main: String,
@@ -173,6 +175,23 @@ impl Repository {
             !path_exists(&self.root.join(".bip"))?,
             "Existing .bip metadata will not be overwritten; inspect it before initializing"
         );
+        for path in [IDENTITY_PATH, SIGNERS_PATH] {
+            let result = output(
+                self.command()
+                    .args(["check-ignore", "--no-index", "--quiet", "--", path]),
+                None,
+            )?;
+            match result.status.code() {
+                Some(0) => bail!(
+                    "Git is configured to ignore bip metadata ({path}). Update the relevant ignore rule or add an exception for .bip, then run bip init again. To find the rule, run from the repository root: git check-ignore -v --no-index -- {path}"
+                ),
+                Some(1) => (),
+                _ => bail!(
+                    "Could not check Git ignore rules for {path}: {}",
+                    String::from_utf8_lossy(&result.stderr).trim()
+                ),
+            }
+        }
         ensure!(
             self.read(&[
                 "status",

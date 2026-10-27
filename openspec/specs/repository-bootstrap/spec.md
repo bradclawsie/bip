@@ -22,6 +22,18 @@ Bootstrap commands SHALL operate on local, non-bare Git repositories with comple
 - **WHEN** either bootstrap command runs outside a Git repository
 - **THEN** it fails and explains that an existing Git repository is required
 
+### Requirement: Bootstrap files are not ignored
+
+`bip init` SHALL reject initialization when Git's effective ignore rules match either bootstrap file. It SHALL identify the affected path and explain how to find and update the relevant rule. Explicit exceptions SHALL be respected. A failure SHALL leave repository state unchanged.
+
+#### Scenario: An ignore rule applies to bootstrap metadata
+- **WHEN** a repository, local-exclude, or global ignore rule matches `.bip/identity.toml` or `.bip/allowed_signers`
+- **THEN** initialization fails before creating or signing bootstrap metadata and explains how to find the rule
+
+#### Scenario: Bootstrap metadata is exempted from ignore rules
+- **WHEN** Git's effective ignore rules do not match either bootstrap file, including because an exception applies
+- **THEN** initialization is not rejected for ignored bootstrap metadata
+
 ### Requirement: Initialization preconditions
 
 `bip init` SHALL require `main` to be checked out with at least one existing commit, a clean index and working tree including non-ignored untracked files, no existing `.bip` path, and no initialization marker on the first-parent history of `main`. Failed preconditions SHALL leave repository state unchanged.
